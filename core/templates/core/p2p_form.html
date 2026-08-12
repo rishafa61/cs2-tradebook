@@ -1,0 +1,326 @@
+{% extends "core/base.html" %}
+{% block title %}{% if mode == "edit" %}Edit{% else %}New{% endif %} P2P Trade - TradeBook{% endblock %}
+
+{% block content %}
+<h3 class="mb-1">{% if mode == "edit" %}Edit P2P Trade{% else %}New P2P Trade{% endif %}</h3>
+<p class="text-muted small mb-4">Swap one or more skins from your inventory for one or more skins, with optional cash top-up. Use "+ Add another skin" on either side for multi-item trades (e.g. 2 items for 1).</p>
+
+<div class="row g-4" style="max-width: 900px;">
+    <div class="col-lg-7">
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label">Date</label>
+                {{ form.date }}
+                {{ form.date.errors }}
+            </div>
+
+            <hr class="my-3">
+            <p class="small text-muted fw-semibold mb-2">SKINS YOU'RE GIVING AWAY</p>
+
+            {{ given_formset.management_form }}
+            {% if given_formset.non_form_errors %}
+                <div class="alert alert-danger py-2 small">{{ given_formset.non_form_errors }}</div>
+            {% endif %}
+
+            <div id="given-rows">
+                {% for gform in given_formset %}
+                <div class="p2p-row row g-2 align-items-start mb-2">
+                    <div class="col-7">
+                        {{ gform.inventory_item }}
+                        <div class="form-text">{{ gform.inventory_item.errors }}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ gform.value }}
+                        </div>
+                        <div class="form-text">{{ gform.value.errors }}</div>
+                    </div>
+                    <div class="col-1 pt-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger p2p-remove-row" title="Remove this skin">&times;</button>
+                        <span style="display:none;">{{ gform.DELETE }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mb-2" id="add-given-row">+ Add another skin</button>
+            <div class="form-text mb-2">Only skins currently in your inventory appear here.</div>
+
+            <template id="given-empty-template">
+                <div class="p2p-row row g-2 align-items-start mb-2">
+                    <div class="col-7">
+                        {{ given_formset.empty_form.inventory_item }}
+                    </div>
+                    <div class="col-4">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ given_formset.empty_form.value }}
+                        </div>
+                    </div>
+                    <div class="col-1 pt-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger p2p-remove-row" title="Remove this skin">&times;</button>
+                        <span style="display:none;">{{ given_formset.empty_form.DELETE }}</span>
+                    </div>
+                </div>
+            </template>
+
+            <hr class="my-3">
+            <p class="small text-muted fw-semibold mb-2">SKINS YOU'RE RECEIVING</p>
+
+            {{ received_formset.management_form }}
+            {% if received_formset.non_form_errors %}
+                <div class="alert alert-danger py-2 small">{{ received_formset.non_form_errors }}</div>
+            {% endif %}
+
+            <div id="received-rows">
+                {% for rform in received_formset %}
+                <div class="p2p-row row g-2 align-items-start mb-2">
+                    <div class="col-7">
+                        {{ rform.skin_name }}
+                        <div class="form-text">{{ rform.skin_name.errors }}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ rform.value }}
+                        </div>
+                        <div class="form-text">{{ rform.value.errors }}</div>
+                    </div>
+                    <div class="col-1 pt-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger p2p-remove-row" title="Remove this skin">&times;</button>
+                        <span style="display:none;">{{ rform.DELETE }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mb-2" id="add-received-row">+ Add another skin</button>
+
+            <template id="received-empty-template">
+                <div class="p2p-row row g-2 align-items-start mb-2">
+                    <div class="col-7">
+                        {{ received_formset.empty_form.skin_name }}
+                    </div>
+                    <div class="col-4">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ received_formset.empty_form.value }}
+                        </div>
+                    </div>
+                    <div class="col-1 pt-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger p2p-remove-row" title="Remove this skin">&times;</button>
+                        <span style="display:none;">{{ received_formset.empty_form.DELETE }}</span>
+                    </div>
+                </div>
+            </template>
+
+            <hr class="my-3">
+            <p class="small text-muted fw-semibold mb-2">CASH TOP-UP (OPTIONAL)</p>
+
+            <div class="mb-3">
+                <label class="form-label">Cash direction</label>
+                {{ form.cash_direction }}
+                {{ form.cash_direction.errors }}
+            </div>
+
+            <div class="mb-3" id="cash-amount-row" style="display:none;">
+                <label class="form-label">Cash amount</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ form.cash_amount }}
+                </div>
+                <div class="form-text fee-hint" id="cash-hint"></div>
+                {{ form.cash_amount.errors }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                {{ form.notes }}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Trade</button>
+            <a href="{% url 'p2p-list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card-summary" id="preview-card" style="position: sticky; top: 1rem;">
+            <div class="label mb-3">Live P&L Preview</div>
+
+            <div class="d-flex justify-content-between mb-1 small">
+                <span class="text-muted">Value received</span>
+                <span id="prev-received">$0.00</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1 small">
+                <span class="text-muted">Value given</span>
+                <span id="prev-given">$0.00</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1 small" id="prev-cash-row" style="display:none!important;">
+                <span class="text-muted" id="prev-cash-label">Cash received</span>
+                <span id="prev-cash-val">$0.00</span>
+            </div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between">
+                <span class="fw-semibold small">Net Gain</span>
+                <span id="prev-gain" class="value" style="font-size:1.2rem;">$0.00</span>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+                <span class="fee-hint">ROI</span>
+                <span id="prev-roi" class="fee-hint">—</span>
+            </div>
+
+            <div class="mt-3 small text-muted">
+                Every skin you receive (<strong id="prev-received-names">—</strong>) will be
+                added to your inventory. Its cost basis is your total given value (plus any
+                cash you paid) split proportionally across the received skins.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const direction  = document.getElementById("id_cash_direction");
+    const cashAmt    = document.getElementById("id_cash_amount");
+    const cashRow    = document.getElementById("cash-amount-row");
+    const cashHint   = document.getElementById("cash-hint");
+
+    const pReceived  = document.getElementById("prev-received");
+    const pGiven     = document.getElementById("prev-given");
+    const pCashRow   = document.getElementById("prev-cash-row");
+    const pCashLabel = document.getElementById("prev-cash-label");
+    const pCashVal   = document.getElementById("prev-cash-val");
+    const pGain      = document.getElementById("prev-gain");
+    const pRoi       = document.getElementById("prev-roi");
+    const pNames     = document.getElementById("prev-received-names");
+
+    function fmt(n) { return "$" + n.toFixed(2); }
+
+    function isRowActive(row) {
+        if (row.style.display === "none") return false;
+        const del = row.querySelector("input[type=checkbox]");
+        if (del && del.checked) return false;
+        return true;
+    }
+
+    function sumValues(containerId) {
+        let total = 0;
+        document.querySelectorAll("#" + containerId + " .p2p-row").forEach(row => {
+            if (!isRowActive(row)) return;
+            const valInput = row.querySelector("input[name$='-value']");
+            if (valInput) total += parseFloat(valInput.value) || 0;
+        });
+        return total;
+    }
+
+    function receivedNames() {
+        const names = [];
+        document.querySelectorAll("#received-rows .p2p-row").forEach(row => {
+            if (!isRowActive(row)) return;
+            const nameInput = row.querySelector("input[name$='-skin_name']");
+            if (nameInput && nameInput.value.trim()) names.push(nameInput.value.trim());
+        });
+        return names.length ? names.join(", ") : "—";
+    }
+
+    function setupFormset(prefix, containerId, addBtnId, templateId) {
+        const totalForms = document.getElementById("id_" + prefix + "-TOTAL_FORMS");
+        const container = document.getElementById(containerId);
+        const template = document.getElementById(templateId);
+
+        function bindRow(row) {
+            row.querySelectorAll("input, select").forEach(el => {
+                el.addEventListener("input", updatePreview);
+                el.addEventListener("change", updatePreview);
+            });
+            const removeBtn = row.querySelector(".p2p-remove-row");
+            removeBtn.addEventListener("click", function () {
+                const deleteCheckbox = row.querySelector("input[type=checkbox]");
+                if (deleteCheckbox) {
+                    // Existing (previously saved) row: mark for deletion, keep it in the DOM
+                    // so Django's formset management form stays in sync, just hide it.
+                    deleteCheckbox.checked = true;
+                    row.style.display = "none";
+                } else {
+                    // Freshly added row with no delete checkbox concept needed: just remove it.
+                    row.remove();
+                }
+                updatePreview();
+            });
+        }
+
+        function addRow() {
+            const idx = parseInt(totalForms.value, 10);
+            const html = template.innerHTML.replace(/__prefix__/g, idx);
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = html.trim();
+            const row = wrapper.firstElementChild;
+            container.appendChild(row);
+            totalForms.value = idx + 1;
+            bindRow(row);
+            updatePreview();
+        }
+
+        container.querySelectorAll(".p2p-row").forEach(bindRow);
+        document.getElementById(addBtnId).addEventListener("click", addRow);
+    }
+
+    function update() {
+        const dir  = direction.value;
+        const cash = parseFloat(cashAmt.value) || 0;
+
+        const hasCash = dir !== "none";
+        cashRow.style.display = hasCash ? "" : "none";
+        if (dir === "received") {
+            cashHint.textContent = "This cash comes INTO your balance.";
+        } else if (dir === "paid") {
+            cashHint.textContent = "This cash goes OUT of your balance.";
+        }
+
+        const given    = sumValues("given-rows");
+        const received = sumValues("received-rows");
+
+        const cashIn  = dir === "received" ? cash : 0;
+        const cashOut = dir === "paid"     ? cash : 0;
+        const gain = (received + cashIn) - (given + cashOut);
+        const costBasis = given + cashOut;
+        const roi  = costBasis > 0 ? (gain / costBasis * 100) : null;
+
+        pReceived.textContent = fmt(received);
+        pGiven.textContent    = fmt(given);
+        pNames.textContent    = receivedNames();
+
+        if (hasCash && cash > 0) {
+            pCashRow.style.setProperty("display", "flex", "important");
+            pCashLabel.textContent = dir === "received" ? "Cash received" : "Cash paid";
+            pCashVal.textContent   = fmt(cash);
+        } else {
+            pCashRow.style.setProperty("display", "none", "important");
+        }
+
+        pGain.textContent = fmt(gain);
+        pGain.className = "value " + (gain >= 0 ? "text-profit-positive" : "text-profit-negative");
+        pRoi.textContent  = roi !== null ? roi.toFixed(2) + "%" : "—";
+    }
+
+    var updatePreview = update;
+
+    setupFormset("given", "given-rows", "add-given-row", "given-empty-template");
+    setupFormset("received", "received-rows", "add-received-row", "received-empty-template");
+
+    [direction, cashAmt].forEach(el => {
+        el.addEventListener("input", update);
+        el.addEventListener("change", update);
+    });
+
+    update();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+:root {
+    --tb-border: #e3e5e8;
+    --tb-muted: #6b7280;
+}
+
+body {
+    background-color: #fafafa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: #1e1f22;
+}
+
+.sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background-color: #ffffff;
+    border-right: 1px solid var(--tb-border);
+}
+
+[data-bs-theme="dark"] .sidebar {
+    background-color: #26272b;
+    border-right-color: #3a3b3f;
+}
+
+.sidebar-brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.sidebar .nav-link {
+    color: var(--tb-muted);
+    border-radius: 6px;
+    font-size: 0.92rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.sidebar .nav-link.active {
+    background-color: #f1f0fe;
+    color: #5b4bd6;
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .sidebar .nav-link.active {
+    background-color: #3a3560;
+    color: #b8adfb;
+}
+
+.card-summary {
+    border: 1px solid var(--tb-border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    background: #fff;
+}
+
+[data-bs-theme="dark"] .card-summary {
+    background: #26272b;
+    border-color: #3a3b3f;
+}
+
+.card-summary .label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--tb-muted);
+}
+
+.card-summary .value {
+    font-size: 1.45rem;
+    font-weight: 700;
+}
+
+.table-sheet {
+    border: 1px solid var(--tb-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-sheet th {
+    background-color: #f7f7f8;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--tb-muted);
+    border-bottom: 1px solid var(--tb-border);
+}
+
+[data-bs-theme="dark"] .table-sheet th {
+    background-color: #2e2f33;
+    border-bottom-color: #3a3b3f;
+}
+
+.table-sheet td, .table-sheet th {
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.text-profit-positive { color: #1a8754; font-weight: 600; }
+.text-profit-negative { color: #dc3545; font-weight: 600; }
+
+.badge-type-buy { background-color: #e7f3ff; color: #0969da; }
+.badge-type-sell { background-color: #e6f9ee; color: #1a8754; }
+.badge-type-deposit { background-color: #fff3cd; color: #997404; }
+.badge-type-withdraw { background-color: #f5e6ff; color: #7c3aed; }
+
+.fee-hint {
+    font-size: 0.8rem;
+    color: var(--tb-muted);
+}

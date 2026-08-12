@@ -1,0 +1,77 @@
+{% extends "core/base.html" %}
+{% block title %}P2P Trades - TradeBook{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">P2P Trades</h3>
+    <a href="{% url 'p2p-add' %}" class="btn btn-primary btn-sm">+ New P2P Trade</a>
+</div>
+<p class="text-muted small">Skin-for-skin swaps, with or without a cash top-up. The skin you receive is automatically added to your inventory.</p>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Search skin name...">
+    </div>
+    <div class="col-auto">
+        <input type="month" name="month" value="{{ month }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button>
+        <a href="{% url 'p2p-list' %}" class="btn btn-sm btn-link">Reset</a>
+    </div>
+</form>
+
+<div class="table-responsive table-sheet">
+    <table class="table mb-0 align-middle">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Skins Given</th>
+                <th>Skins Received</th>
+                <th class="text-end">Given Value</th>
+                <th class="text-end">Received Value</th>
+                <th>Cash Difference</th>
+                <th class="text-end">Net Gain</th>
+                <th class="text-end">ROI</th>
+                <th>Notes</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in trades %}
+            <tr>
+                <td>{{ t.date|date:"M d, Y" }}</td>
+                <td>{{ t.given_skin_names }}</td>
+                <td>{{ t.received_skin_names }}</td>
+                <td class="text-end">${{ t.given_value }}</td>
+                <td class="text-end">${{ t.received_value }}</td>
+                <td>
+                    {% if t.cash_direction == "received" %}
+                        <span class="badge badge-type-deposit">I received +${{ t.cash_amount }}</span>
+                    {% elif t.cash_direction == "paid" %}
+                        <span class="badge badge-type-withdraw">I paid +${{ t.cash_amount }}</span>
+                    {% else %}
+                        <span class="text-muted small">Pure swap</span>
+                    {% endif %}
+                </td>
+                <td class="text-end {% if t.net_gain < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">
+                    ${{ t.net_gain }}
+                </td>
+                <td class="text-end">
+                    {% if t.roi is not None %}
+                        <span class="{% if t.roi < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">{{ t.roi }}%</span>
+                    {% else %}—{% endif %}
+                </td>
+                <td class="small text-muted">{{ t.notes|truncatechars:30 }}</td>
+                <td class="text-end text-nowrap">
+                    <a href="{% url 'p2p-edit' t.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <a href="{% url 'p2p-delete' t.pk %}" class="btn btn-sm btn-outline-danger">Del</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="10" class="text-center text-muted py-4">No P2P trades yet. Record your first trade above.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

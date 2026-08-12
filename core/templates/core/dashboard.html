@@ -1,0 +1,166 @@
+{% extends "core/base.html" %}
+{% block title %}Dashboard - TradeBook{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">Dashboard</h3>
+    <a href="{% url 'transaction-add' %}" class="btn btn-primary btn-sm">+ Add Transaction</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card-summary">
+            <div class="label">Cash Available</div>
+            <div class="value">${{ cash_available }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card-summary">
+            <div class="label">Total Invested</div>
+            <div class="value">${{ total_invested }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card-summary">
+            <div class="label">Inventory Value</div>
+            <div class="value">${{ inventory_value }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card-summary">
+            <div class="label">Realized Profit</div>
+            <div class="value {% if realized_profit < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">${{ realized_profit }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card-summary">
+            <div class="label">Unrealized Profit</div>
+            <div class="value {% if unrealized_profit < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">${{ unrealized_profit }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card-summary">
+            <div class="label">Total Fees</div>
+            <div class="value">${{ total_fees }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card-summary">
+            <div class="label">Total Trades</div>
+            <div class="value">{{ total_trades }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">Recent P2P Trades</h5>
+            <div class="d-flex gap-2">
+                <a href="{% url 'p2p-add' %}" class="btn btn-sm btn-outline-primary">+ P2P Trade</a>
+                <a href="{% url 'p2p-list' %}" class="small align-self-center">View all →</a>
+            </div>
+        </div>
+        <div class="table-responsive table-sheet">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Gave</th>
+                        <th>Received</th>
+                        <th class="text-end">Given Value</th>
+                        <th class="text-end">Received Value</th>
+                        <th>Cash</th>
+                        <th class="text-end">Net Gain</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in recent_p2p %}
+                    <tr>
+                        <td>{{ t.date|date:"M d, Y" }}</td>
+                        <td>{{ t.given_skin_names }}</td>
+                        <td>{{ t.received_skin_names }}</td>
+                        <td class="text-end">${{ t.given_value }}</td>
+                        <td class="text-end">${{ t.received_value }}</td>
+                        <td>
+                            {% if t.cash_direction == "received" %}<span class="badge badge-type-deposit">+${{ t.cash_amount }}</span>
+                            {% elif t.cash_direction == "paid" %}<span class="badge badge-type-withdraw">-${{ t.cash_amount }}</span>
+                            {% else %}<span class="text-muted small">—</span>{% endif %}
+                        </td>
+                        <td class="text-end {% if t.net_gain < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">${{ t.net_gain }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-3">No P2P trades yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">Recent Transactions</h5>
+            <a href="{% url 'transaction-list' %}" class="small">View all →</a>
+        </div>
+        <div class="table-responsive table-sheet">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Skin</th>
+                        <th>Marketplace</th>
+                        <th class="text-end">Net Profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in recent_transactions %}
+                    <tr>
+                        <td>{{ t.date|date:"M d, Y" }}</td>
+                        <td><span class="badge badge-type-{{ t.type }}">{{ t.get_type_display }}</span></td>
+                        <td>{{ t.skin_name|default:"—" }}</td>
+                        <td>{{ t.get_marketplace_display|default:"—" }}</td>
+                        <td class="text-end {% if t.net_profit and t.net_profit < 0 %}text-profit-negative{% elif t.net_profit %}text-profit-positive{% endif %}">
+                            {% if t.net_profit is not None %}${{ t.net_profit }}{% else %}—{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No transactions yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">Current Inventory</h5>
+            <a href="{% url 'inventory-list' %}" class="small">View all →</a>
+        </div>
+        <div class="table-responsive table-sheet">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Skin</th>
+                        <th class="text-end">Est. Value</th>
+                        <th class="text-end">Unrealized</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in inventory_items %}
+                    <tr>
+                        <td>{{ i.skin_name }}</td>
+                        <td class="text-end">${{ i.estimated_price }}</td>
+                        <td class="text-end {% if i.unrealized_profit < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">${{ i.unrealized_profit }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-center text-muted py-4">Nothing in inventory.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

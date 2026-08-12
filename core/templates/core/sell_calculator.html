@@ -1,0 +1,132 @@
+{% extends "core/base.html" %}
+{% block title %}Sell Price Calculator - TradeBook{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Sell Price Calculator</h3>
+    <a href="{% url 'inventory-list' %}" class="btn btn-outline-secondary btn-sm">Back to Inventory</a>
+</div>
+<p class="text-muted small">
+    Marketplaces take a cut, so listing at exactly what you want back means you net less.
+    This works backwards: tell it what you have into the item and the minimum profit
+    you want to clear, and it finds the lowest listing price that guarantees it &mdash;
+    useful when an 8-day trade hold means you only want to list once.
+</p>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="table-sheet p-3">
+            <form method="get" id="calcForm">
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Prefill from inventory (optional)</label>
+                    <select class="form-select" id="itemSelect" name="item" onchange="onItemChange(this)">
+                        <option value="">— Enter cost manually —</option>
+                        {% for h in holding_items %}
+                        <option value="{{ h.pk }}" data-cost="{{ h.purchase_price }}" {% if prefill_item and prefill_item.pk == h.pk %}selected{% endif %}>
+                            {{ h.skin_name }} (cost ${{ h.purchase_price }}, held {{ h.holding_days }}d)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Your cost basis ($)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" id="costInput" name="cost" value="{{ cost }}" placeholder="e.g. 1.00" required>
+                    <div class="form-text">What you paid, or the net amount you want guaranteed back.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Marketplace</label>
+                    <select class="form-select" id="marketplaceSelect" name="marketplace" onchange="onMarketplaceChange(this)">
+                        {% for value, label in marketplaces %}
+                        <option value="{{ value }}" {% if marketplace == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Marketplace fee (%)</label>
+                    <input type="number" step="0.01" min="0" max="99" class="form-control" id="feeInput" name="fee_pct" value="{{ fee_pct }}" required>
+                    <div class="form-text">Auto-filled per marketplace &mdash; CSFloat is 2%. Override if needed.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Minimum profit ($)</label>
+                    <input type="number" step="0.001" min="0" class="form-control" name="min_profit" value="{{ min_profit }}" required>
+                    <div class="form-text">The least you're willing to clear on top of your cost, e.g. 0.005 for half a cent.</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Calculate</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% elif result %}
+        <div class="table-sheet p-4">
+            <div class="text-muted small mb-1">List at or above</div>
+            <div class="display-5 fw-bold mb-3">${{ result.list_price }}</div>
+
+            <table class="table table-sm mb-0">
+                <tbody>
+                    <tr>
+                        <td class="text-muted">Marketplace fee at that price</td>
+                        <td class="text-end">-${{ result.fee_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Net proceeds you'll receive</td>
+                        <td class="text-end fw-semibold">${{ result.net_proceeds }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Your cost basis</td>
+                        <td class="text-end">${{ cost }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Actual profit locked in</td>
+                        <td class="text-end {% if result.actual_profit < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">${{ result.actual_profit }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mt-3">
+            Any price at or above ${{ result.list_price }} guarantees you net at least
+            ${{ result.target_net }} after the {{ fee_pct }}% fee. Listing a cent or two
+            higher just banks extra profit &mdash; it never drops you below the minimum.
+        </p>
+        {% else %}
+        <div class="table-sheet p-4 text-muted">
+            Enter a cost basis on the left to see the reference price.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    var itemCosts = {};
+    {% for h in holding_items %}
+    itemCosts["{{ h.pk }}"] = "{{ h.purchase_price }}";
+    {% endfor %}
+
+    var marketplaceFees = {
+        {% for mkey, mfee in marketplace_fee_defaults.items %}
+        "{{ mkey }}": "{{ mfee }}",
+        {% endfor %}
+    };
+
+    function onItemChange(sel) {
+        var pk = sel.value;
+        if (pk && itemCosts[pk] !== undefined) {
+            document.getElementById("costInput").value = itemCosts[pk];
+        }
+    }
+
+    function onMarketplaceChange(sel) {
+        var fee = marketplaceFees[sel.value];
+        if (fee !== undefined) {
+            document.getElementById("feeInput").value = fee;
+        }
+    }
+</script>
+{% endblock %}

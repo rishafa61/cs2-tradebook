@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% block title %}Reports - TradeBook{% endblock %}
+
+{% block content %}
+<h3 class="mb-4">Reports</h3>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <h5>This Month — {{ month_label }}</h5>
+        <div class="table-sheet p-3">
+            <div class="d-flex justify-content-between py-1"><span>Bought</span><strong>${{ month_bought }}</strong></div>
+            <div class="d-flex justify-content-between py-1"><span>Sold</span><strong>${{ month_sold }}</strong></div>
+            <div class="d-flex justify-content-between py-1">
+                <span>Profit (incl. P2P)</span>
+                <strong class="{% if month_profit < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">${{ month_profit }}</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1"><span>Fees</span><strong>${{ month_fees }}</strong></div>
+            <div class="d-flex justify-content-between py-1"><span>P2P Trades</span><strong>{{ month_p2p_count }}</strong></div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <h5>Lifetime</h5>
+        <div class="table-sheet p-3">
+            <div class="d-flex justify-content-between py-1"><span>Total Investment</span><strong>${{ lifetime_investment }}</strong></div>
+            <div class="d-flex justify-content-between py-1"><span>Total Revenue</span><strong>${{ lifetime_revenue }}</strong></div>
+            <div class="d-flex justify-content-between py-1">
+                <span>Total Profit (incl. P2P)</span>
+                <strong class="{% if lifetime_profit < 0 %}text-profit-negative{% else %}text-profit-positive{% endif %}">${{ lifetime_profit }}</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1">
+                <span>ROI</span>
+                <strong>{% if lifetime_roi is not None %}{{ lifetime_roi }}%{% else %}—{% endif %}</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1"><span>Total P2P Trades</span><strong>{{ total_p2p }}</strong></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

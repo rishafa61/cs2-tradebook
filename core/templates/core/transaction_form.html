@@ -1,0 +1,158 @@
+{% extends "core/base.html" %}
+{% block title %}{% if mode == "edit" %}Edit{% else %}Add{% endif %} Transaction - TradeBook{% endblock %}
+
+{% block content %}
+<h3 class="mb-4">{% if mode == "edit" %}Edit Transaction{% else %}Add Transaction{% endif %}</h3>
+
+<form method="post" class="row g-3" style="max-width: 640px;" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        <div class="col-12"><div class="alert alert-danger">{{ form.non_field_errors }}</div></div>
+    {% endif %}
+
+    <div class="col-md-6">
+        <label class="form-label">Date</label>
+        {{ form.date }}
+        {{ form.date.errors }}
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Type</label>
+        {{ form.type }}
+        {{ form.type.errors }}
+    </div>
+
+    <div class="col-12 field-buy">
+        <label class="form-label">Skin Name</label>
+        {{ form.skin_name }}
+        <datalist id="skin-name-list"></datalist>
+        {{ form.skin_name.errors }}
+    </div>
+
+    <div class="col-12 field-sell">
+        <label class="form-label">Which skin are you selling?</label>
+        {{ form.inventory_item }}
+        {{ form.inventory_item.errors }}
+    </div>
+
+    <div class="col-md-6 field-buysell">
+        <label class="form-label">Marketplace</label>
+        {{ form.marketplace }}
+        {{ form.marketplace.errors }}
+    </div>
+
+    <div class="col-md-6 field-buy">
+        <label class="form-label">Buy Price</label>
+        {{ form.buy_price }}
+        {{ form.buy_price.errors }}
+    </div>
+
+    <div class="col-md-6 field-sell">
+        <label class="form-label">Sell Price</label>
+        {{ form.sell_price }}
+        {{ form.sell_price.errors }}
+    </div>
+
+    <div class="col-md-6 field-sell">
+        <label class="form-label">
+            Marketplace Fee
+            <span id="csfloatHint" class="fee-hint d-none">— auto-calculated at 2% for CSFloat, editable</span>
+        </label>
+        {{ form.marketplace_fee }}
+        {{ form.marketplace_fee.errors }}
+    </div>
+
+    <div class="col-md-6 field-sell">
+        <label class="form-label">Other Fee</label>
+        {{ form.other_fee }}
+        {{ form.other_fee.errors }}
+    </div>
+
+    <div class="col-md-6 field-cash">
+        <label class="form-label">Amount</label>
+        {{ form.amount }}
+        {{ form.amount.errors }}
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Notes</label>
+        {{ form.notes }}
+        {{ form.notes.errors }}
+    </div>
+
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Save Transaction</button>
+        <a href="{% url 'transaction-list' %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const CSFLOAT_FEE_RATE = 0.02;
+
+    const typeField = document.getElementById("id_type");
+    const marketplaceField = document.getElementById("id_marketplace");
+    const sellPriceField = document.getElementById("id_sell_price");
+    const feeField = document.getElementById("id_marketplace_fee");
+    const csfloatHint = document.getElementById("csfloatHint");
+
+    const fieldGroups = {
+        buy: document.querySelectorAll(".field-buy"),
+        sell: document.querySelectorAll(".field-sell"),
+        buysell: document.querySelectorAll(".field-buysell"),
+        cash: document.querySelectorAll(".field-cash"),
+    };
+
+    // If the person edits the fee manually, stop auto-overwriting it —
+    // unless they clear it, in which case we resume auto-calculating.
+    let feeManuallyEdited = feeField.value && feeField.value !== "0.00" && feeField.value !== "0";
+
+    function isCsfloatSale() {
+        return typeField.value === "sell" && marketplaceField.value === "csfloat";
+    }
+
+    function recalcCsfloatFee() {
+        csfloatHint.classList.toggle("d-none", !isCsfloatSale());
+
+        if (!isCsfloatSale()) return;
+        if (feeManuallyEdited) return;
+
+        const sellPrice = parseFloat(sellPriceField.value);
+        if (!isNaN(sellPrice) && sellPrice >= 0) {
+            feeField.value = (sellPrice * CSFLOAT_FEE_RATE).toFixed(2);
+        }
+    }
+
+    function updateVisibleFields() {
+        const type = typeField.value;
+
+        fieldGroups.buy.forEach(el => el.classList.toggle("d-none", type !== "buy"));
+        fieldGroups.sell.forEach(el => el.classList.toggle("d-none", type !== "sell"));
+        fieldGroups.buysell.forEach(el => el.classList.toggle("d-none", type !== "buy" && type !== "sell"));
+        fieldGroups.cash.forEach(el => el.classList.toggle("d-none", type !== "deposit" && type !== "withdraw"));
+
+        recalcCsfloatFee();
+    }
+
+    typeField.addEventListener("change", updateVisibleFields);
+    marketplaceField.addEventListener("change", recalcCsfloatFee);
+    sellPriceField.addEventListener("input", recalcCsfloatFee);
+
+    feeField.addEventListener("input", function () {
+        feeManuallyEdited = true;
+    });
+
+    // If the fee field is emptied, resume auto-calculating for CSFloat.
+    feeField.addEventListener("blur", function () {
+        if (!feeField.value) {
+            feeManuallyEdited = false;
+            recalcCsfloatFee();
+        }
+    });
+
+    updateVisibleFields();
+});
+</script>
+{% endblock %}
