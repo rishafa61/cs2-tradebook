@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -9,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-bc9zh(pqooa8c^@yl-2&(8_)yty1rnnv(a07$#_v!%(%j_%5+b'
 
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', '') == '1'
 
 ALLOWED_HOSTS = ['.vercel.app', '127.0.0.1', 'localhost']
 
@@ -60,12 +63,38 @@ WSGI_APPLICATION = 'tradebook_project.wsgi.application'
 
 IS_VERCEL = os.environ.get('VERCEL') == '1'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3' if IS_VERCEL else BASE_DIR / 'db.sqlite3',
+# Vercel's serverless functions run on a read-only filesystem (except /tmp,
+# which is wiped between invocations), so SQLite can't be used there — any
+# data written would vanish as soon as the function's container recycled.
+# DATABASE_URL must point at a real hosted database (e.g. Vercel Postgres,
+# Neon, Supabase) whenever this runs on Vercel. Locally, with no
+# DATABASE_URL set, it falls back to a SQLite file for convenience.
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
-}
+elif IS_VERCEL:
+    # Fail loudly instead of silently falling back to a database that will
+    # lose all data on the next cold start.
+    raise ImproperlyConfigured(
+        'DATABASE_URL is not set. On Vercel, a persistent database '
+        '(e.g. Vercel Postgres or Neon) is required — SQLite cannot be '
+        'used because the filesystem is read-only/ephemeral. Add '
+        'DATABASE_URL to your Vercel project environment variables.'
+    )
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
